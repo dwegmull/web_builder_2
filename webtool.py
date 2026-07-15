@@ -9,6 +9,48 @@ import subprocess
 
 
 listOfPictures = []
+directoriesToIgnore = [
+".trellix",
+"7VJZWPaTXqhtCV8sWoZ7zkKveJjDvIRDwzK7WVyx4TYr5mIx9Fj1hJcwiAQIWZrpyegBglz6ieFy3f",
+"arduino",
+"blog_archive",
+"cgi-bin",
+"chM2lQFWjXlKc82FBGFYreyJ6TCcHX3kla6gNh6HvRxKsvaHrbwjru5VDJZZhAdFvVjsB",
+"cones",
+"crane",
+"dhiAKrrnombUyXIQoevTdT9f16yBcE6W5NamOVH3kXIBS5L7sufWs5w5AEm5",
+"files",
+"Friends",
+"gallery",
+"GfRenejRbJy",
+"HNiGuPwM66sfNj",
+"holga",
+"images",
+"intensifier",
+"labels",
+"lego",
+"logging",
+"logs",
+"moah",
+"nqkz4z2qW2pT2JrIJhggXQBpE49fCjhVaMj6UEbt8uLgU3kHBmwvpiWq0vW",
+"oodle",
+"Oppopls",
+"plans",
+"projects",
+"restoreBair",
+"reverser",
+"roadster",
+"stats",
+"tav",
+"trains",
+"uploads",
+"V04jHhedD5ce1zGJ59uAUVmrmvaSjyDzFUIuGiJYi5pJybUy8wmdHplIUDlchGbg5zB7h4qALnhoWHCWLL",
+"vero",
+"Vero40",
+"vero_mike",
+"v-web"
+]
+
 result = subprocess.run(['mount'], stdout=subprocess.PIPE)
 if "iphone" not in result.stdout.decode("utf-8"):
     try:
@@ -53,6 +95,12 @@ if len(listOfPictures) == 0:
 
 currentPicture = 0
 
+dirList = OS.listdir('../website/public_html')
+dirsOnly = []
+for d in dirList:
+    if not OS.path.isfile("../website/public_html"+'/' + d):
+        if d not in directoriesToIgnore:
+            dirsOnly.append(d)
 root = tk.Tk()
 root.title("Web builder")
 
@@ -69,13 +117,8 @@ imageLabel.grid(column=0, row=0, columnspan=3, sticky=(W, E))
 caption_entry = tk.Text(mainframe, width=20, height=4)
 caption_entry.grid(column=0, row=1, columnspan=3, sticky=(W, E))
 
-def nextButtonClicked(*args):
-    try:
-        print("next")
-    except ValueError:
-        pass
 
-def skipButtonClicked(*args):
+def skipButtonClicked():
     global currentPicture
     global listOfPictures
     global imageLabel
@@ -89,17 +132,61 @@ def skipButtonClicked(*args):
     except ValueError:
         pass
 
-NextButton = ttk.Button(mainframe, text="Next", command=nextButtonClicked).grid(column=0, row=2, sticky=E)
 SkipButton = ttk.Button(mainframe, text="Skip", command=skipButtonClicked).grid(column=1, row=2)
-dirvar = StringVar()
-directory = ttk.Combobox(mainframe, textvariable=dirvar).grid(column=2, row=2, sticky=W)
 
+currentDir = StringVar()
+cmb = ttk.Combobox(mainframe, values=dirsOnly, width=80, textvariable=currentDir).grid(column=2, row=2, sticky=W, columnspan=2)
 directoryCaption_entry = tk.Text(mainframe, height=4)
 directoryCaption_entry.grid(column=0, row=3, columnspan=3, sticky=(W, E))
 
+def nextButtonClicked():
+    currentCaption = caption_entry.get("1.0",END)
+    print("caption = ", currentCaption, " len = ", len(currentCaption))
+    if len(currentCaption) > 1:
+        if len(currentDir.get()):
+            print("folder = ", currentDir.get())
+            if not currentDir.get() in dirsOnly:
+                print("new directory")
+                try:
+                    OS.mkdir("../website/public_html/" + currentDir.get())
+                except:
+                    print("failed to make " "../website/public_html/" + currentDir.get())
+                    quit()
+                currentNewIndexEntry = directoryCaption_entry.get("1.0",END)
+                if len(currentNewIndexEntry) > 1:
+                    print("new index entry: ", currentNewIndexEntry)
+                    with open("../website/public_html/index.html", "r") as inFile:
+                        lines = inFile.readlines()
+                        print(lines)
+                        lineNumber = 0
+                        for line in lines:
+                            if "<!-- webtool insert point -->" in line:
+                                print("marker line found")
+                                lines.insert(lineNumber + 1, '<tr><td align="right"><a href=' + currentDir.get() + "/index.html><img src=" + currentDir.get() + "/" + listOfPictures[currentPicture] + "></td><td>" + currentNewIndexEntry + "</td></tr>")
+                                break
+                            lineNumber = lineNumber + 1
+                    #with open("../website/public_html/index.html", "w") as outFile:
+                    #    outFile.writelines(lines)
+                    with open("../website/public_html/" + currentDir.get() + "/index.html", "w") as indexFile:
+                        indexFile.write("<html>\n<head>\n<title>" + currentDir.get() + "</title>\n</head>\n<body>\n<p>" + currentNewIndexEntry + "\n</p>\n")
+                        indexFile.write('\n<table>\n<!-- webtool insert point -->\n<tr><td><a href="' + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1])
+                        indexFile.write('"><img src=' + "thumb_" + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1] + '></td><td>')
+                        indexFile.write(currentCaption + '</td></tr></table></div></body></html>')
+                else:
+                    print("Must have an index entry")
+        else:
+            print("must select a directory")
+    else:
+        print("must have a caption")
+    image.save("../website/public_html/" + currentDir.get() + "/thumb_" + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1])
+    try:
+        result = subprocess.run(['cp', listOfPictures[currentPicture], "../website/public_html/" + currentDir.get() + "/" + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1]], stdout=subprocess.PIPE)
+        print(result.stdout, listOfPictures[currentPicture], "../website/public_html/" + currentDir.get() + "/" + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1])
+    except:
+        print(result.stdout, "error copying the full size image to website directory.")
+        quit()
 
-meters = StringVar()
-
+NextButton = ttk.Button(mainframe, text="Next", command=nextButtonClicked).grid(column=0, row=2, sticky=E)
 
 
 root.columnconfigure(0, weight=1)
