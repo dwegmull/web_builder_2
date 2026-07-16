@@ -141,6 +141,8 @@ directoryCaption_entry.grid(column=0, row=3, columnspan=3, sticky=(W, E))
 
 def nextButtonClicked():
     currentCaption = caption_entry.get("1.0",END)
+    if currentCaption[-1] == '\n':
+        currentCaption = currentCaption[0:-1]
     print("caption = ", currentCaption, " len = ", len(currentCaption))
     if len(currentCaption) > 1:
         if len(currentDir.get()):
@@ -153,6 +155,8 @@ def nextButtonClicked():
                     print("failed to make " "../website/public_html/" + currentDir.get())
                     quit()
                 currentNewIndexEntry = directoryCaption_entry.get("1.0",END)
+                if currentNewIndexEntry[-1] == '\n':
+                    currentNewIndexEntry = currentNewIndexEntry[0:-1]
                 if len(currentNewIndexEntry) > 1:
                     print("new index entry: ", currentNewIndexEntry)
                     with open("../website/public_html/index.html", "r") as inFile:
@@ -162,11 +166,12 @@ def nextButtonClicked():
                         for line in lines:
                             if "<!-- webtool insert point -->" in line:
                                 print("marker line found")
-                                lines.insert(lineNumber + 1, '<tr><td align="right"><a href=' + currentDir.get() + "/index.html><img src=" + currentDir.get() + "/" + listOfPictures[currentPicture] + "></td><td>" + currentNewIndexEntry + "</td></tr>")
+                                lines.insert(lineNumber + 1, '<tr><td align="right"><a href=' + currentDir.get() + "/index.html><img src=" + currentDir.get() + "/" + "thumb_" + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1] + "></td><td>" + currentNewIndexEntry + "</td></tr>\n")
                                 break
                             lineNumber = lineNumber + 1
-                    #with open("../website/public_html/index.html", "w") as outFile:
-                    #    outFile.writelines(lines)
+                    outFile = open("../website/public_html/index.html", "w")
+                    outFile.writelines(lines)
+                    outFile.close()
                     with open("../website/public_html/" + currentDir.get() + "/index.html", "w") as indexFile:
                         indexFile.write("<html>\n<head>\n<title>" + currentDir.get() + "</title>\n</head>\n<body>\n<p>" + currentNewIndexEntry + "\n</p>\n")
                         indexFile.write('\n<table>\n<!-- webtool insert point -->\n<tr><td><a href="' + OS.path.basename(listOfPictures[currentPicture]).split('/')[-1])
